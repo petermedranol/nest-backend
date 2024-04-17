@@ -3,33 +3,37 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import * as bcrypt from 'bcryptjs';
 import { User } from './entities/user.entity';
 
 @Injectable()
 export class AuthService {
   constructor(@InjectModel( User.name ) private userModel: Model<User>) {}
 
-  create(CreateUserDto: CreateUserDto):Promise<User> {
-    
-    // const newUser = new this.userModel(CreateUserDto);
-    // return newUser.save();
+  async create(CreateUserDto: CreateUserDto):Promise<User> {
 
     try{
 
-      const newUser = new this.userModel(CreateUserDto);
-      return newUser.save();
+      const { password, ...userData } = CreateUserDto;
       
+      const newUser = new this.userModel({
+        password: bcrypt.hashSync( password, 10 ),
+        ...userData
+      });
+
+      return await newUser.save();
+
     }catch(error){
       
       if(error.code === 11000){
         throw new BadRequestException(`${ CreateUserDto.email } already exists`);
       }
+
       throw new InternalServerErrorException('Something terrible happened!')
+      
     }
 
-    //1. Encriptar contraseña
-    //2. Guardar el usuario
-    //3. Generar el JWT
+    
 
   }
 
